@@ -1,16 +1,19 @@
-import { TetriminoType } from '../common/TetriminoType';
+import { PieceType } from '../common/PieceType';
 import { Color } from '../common/Color';
 import { Coordinate } from '../common/Coordinate';
+import { MainWindow } from '../ui/MainWindow';
 
 export class PieceBase {
-    type: PieceBase;
+    type: PieceType;
     currentShapeIndex: number;
     currentShape: number[][];
-    center: Coordinate;
+    position: Coordinate;
     color: Color;
 
-    constructor(initShapeIndex: number = 0) {
+    constructor(initShapeIndex: number = 0,pieceType:PieceType) {
         this.currentShapeIndex = initShapeIndex;
+        this.type = pieceType;
+        this.position=new Coordinate()
     }
 
     Rotate(): PieceBase {
@@ -23,9 +26,5 @@ export class PieceBase {
 
     move(direction: 'left' | 'right'): PieceBase {
         throw new Error('fallDown() need to be implement by child class');
-    }
-
-    paint(): void {
-        throw new Error('paint() need to be implement by child class');
     }
 }

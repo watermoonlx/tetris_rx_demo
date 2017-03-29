@@ -1,4 +1,5 @@
 import { PieceBase } from './PieceBase';
+import { PieceType } from '../common/PieceType';
 
 export class Piece_I extends PieceBase {
 
@@ -30,7 +31,7 @@ export class Piece_I extends PieceBase {
     ];
 
     constructor(initShapeIndex: number = 0) {
-        super(initShapeIndex);
+        super(initShapeIndex, PieceType.I);
         this.currentShape = Piece_I.shapes[this.currentShapeIndex];
     }
 
