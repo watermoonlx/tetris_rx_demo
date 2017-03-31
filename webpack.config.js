@@ -3,7 +3,9 @@ let htmlWebpackPlugin = require('html-webpack-plugin');
 let path = require('path');
 
 module.exports = {
-    entry: './src/app.ts',
+    entry: [
+        './src/app.ts',
+    ],
     output: {
         filename: 'bundle.js',
         path: __dirname + '/dist'
@@ -16,7 +18,7 @@ module.exports = {
             {
                 test: /\.ts$/,
                 exclude: /node_modules/,
-                loader: 'awesome-typescript-loader'
+                loader: ['babel-loader', 'awesome-typescript-loader']
             }
         ]
     },
