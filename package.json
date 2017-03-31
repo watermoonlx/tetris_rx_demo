@@ -19,7 +19,6 @@
   },
   "homepage": "https://github.com/watermoonlx/tetris_rx_demo#readme",
   "dependencies": {
-    "@types/es6-shim": "^0.31.32",
     "babel-polyfill": "^6.23.0",
     "babel-runtime": "^6.23.0",
     "rxjs": "^5.2.0"

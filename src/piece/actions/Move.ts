@@ -29,9 +29,9 @@ function checkMoveValid(piece: PieceBase, win: MainWindow) {
 }
 
 
-function Move(dir: 'down'): (p: PieceBase) => PieceBase;
-function Move(dir: 'left'): (p: PieceBase) => PieceBase;
-function Move(dir: 'right'): (p: PieceBase) => PieceBase;
+function Move(dir: 'down'): (piece: PieceBase, backgroudWin: MainWindow) => PieceBase;
+function Move(dir: 'left'): (piece: PieceBase, backgroudWin: MainWindow) => PieceBase;
+function Move(dir: 'right'): (piece: PieceBase, backgroudWin: MainWindow) => PieceBase;
 function Move(dir: 'down' | 'left' | 'right') {
     return function (piece: PieceBase, win: MainWindow) {
         let cloned = clonePiece(piece);
