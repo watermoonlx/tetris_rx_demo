@@ -37,20 +37,7 @@ function getInitialGrid() {
     return grid;
 }
 
-function cloneMainWindow(mainWin: MainWindow) {
-    let grid: number[][] = [];
-    for (let y = 0; y < MainWindow.size.height; y++) {
-        let row = [];
-        for (let x = 0; x < MainWindow.size.width; x++) {
-            row[x] = mainWin.currentGrid[y][x];
-        }
-        grid.push(row);
-    }
-    return new MainWindow(grid);
-}
-
 export function InsertPieceToWin(piece: PieceBase, mainWin: MainWindow) {
-    debugger;
     let clonedWin = cloneMainWindow(mainWin);
 
     for (let deltaY = 0; deltaY < piece.currentShape.length; deltaY++) {
@@ -64,4 +51,45 @@ export function InsertPieceToWin(piece: PieceBase, mainWin: MainWindow) {
     }
 
     return clonedWin;
+}
+
+export function calculateMainWindow(mainWin: MainWindow) {
+    let grid: number[][] = getInitialGrid();
+
+    for (let y = MainWindow.size.height - 2; y >= 0; y--) {
+        let row = [];
+        let fullFlag = true;
+        for (let x = 0; x < MainWindow.size.width; x++) {
+            row[x] = mainWin.currentGrid[y][x];
+            if (row[x] == 0)
+                fullFlag = false;
+        }
+        if (!fullFlag)
+            grid[y] = row;
+    }
+    return new MainWindow(grid);
+}
+
+export function checkGameOver(mainWin: MainWindow) {
+    debugger;
+    let failed = false;
+    for (let x = 1; x < MainWindow.size.width - 1; x++){
+        if (mainWin.currentGrid[3][x] == 1) {
+            failed = true;
+            break;
+        }
+    }
+    return failed;
+}
+
+export function cloneMainWindow(mainWin: MainWindow) {
+    let grid: number[][] = [];
+    for (let y = 0; y < MainWindow.size.height; y++) {
+        let row = [];
+        for (let x = 0; x < MainWindow.size.width; x++) {
+            row[x] = mainWin.currentGrid[y][x];
+        }
+        grid.push(row);
+    }
+    return new MainWindow(grid);
 }

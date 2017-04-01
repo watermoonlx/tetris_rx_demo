@@ -3,7 +3,7 @@ import * as Rx from 'rxjs';
 import { GenerateRandomPiece, Move } from './piece/PieceActions';
 import { Action } from './common/ConstValue';
 import { PieceBase } from './piece/Pieces';
-import { MainWindow, InsertPieceToWin } from './ui/MainWindow';
+import { MainWindow, InsertPieceToWin, calculateMainWindow, checkGameOver, cloneMainWindow } from './ui/MainWindow';
 import { Keyboard } from './common/Keyboard';
 
 const rootTick$ = Rx.Observable
@@ -13,8 +13,8 @@ const rootTick$ = Rx.Observable
 const tick$ = rootTick$
     .throttleTime(1000);
 
-const currentPiece$ = new Rx.Subject<PieceBase>().startWith(GenerateRandomPiece());
-const backgroudWindow$ = new Rx.Subject<MainWindow>().startWith(new MainWindow());
+const currentPiece$ = new Rx.Subject<PieceBase>();
+const backgroudWindow$ = new Rx.Subject<MainWindow>();
 
 const userAction$ = Rx.Observable.fromEvent(document, 'keydown')
     .filter((i: KeyboardEvent) => Keyboard.arrowSet.has(i.key))
@@ -31,20 +31,22 @@ const userAction$ = Rx.Observable.fromEvent(document, 'keydown')
     })
     .startWith(Action.Rotate);
 
-const movingPiece$ = Rx.Observable.combineLatest(currentPiece$, tick$, userAction$)
-    .combineLatest(backgroudWindow$)
-    .map(i => {
+const movingPiece$ = Rx.Observable.combineLatest(tick$, userAction$)
+    .withLatestFrom(backgroudWindow$, currentPiece$, (i, j, k) => {
         return {
-            piece: i[0][0],
-            tick: i[0][1],
-            action: i[0][2],
-            backgroudWin: i[1]
+            piece: k,
+            backgroudWin: j,
+            tick: i[0],
+            action: i[1]
         }
     })
     .scan((prev, cur) => {
         let newPiece: PieceBase;
         if (prev.tick !== cur.tick) {
-            newPiece = Move('down')(prev.piece, cur.backgroudWin);
+            if (prev.piece.continue)
+                newPiece = Move('down')(prev.piece, cur.backgroudWin);
+            else
+                newPiece = Move('down')(cur.piece, cur.backgroudWin);
         }
         else {
             switch (cur.action) {
@@ -64,12 +66,52 @@ const movingPiece$ = Rx.Observable.combineLatest(currentPiece$, tick$, userActio
     .map(i => i.piece);
 
 
-const displayWindow$ = movingPiece$.combineLatest(backgroudWindow$)
+const displayWindow$ = movingPiece$.withLatestFrom(backgroudWindow$)
     .map(i => {
-        let curPiece = i[0];
-        let curBackgroudWin = i[1];
-        InsertPieceToWin(curPiece, curBackgroudWin)
-    });
+        let piece = i[0];
+        let backgroudWin = i[1];
+        let displayWin: MainWindow = null;
+        if (piece.continue) {
+            displayWin = InsertPieceToWin(piece, backgroudWin);
+        }
+        return {
+            piece: piece,
+            backgroudWin: backgroudWin,
+            displayWin: displayWin
+        }
+    })
+    .scan((prev, cur) => {
+        let nextBackgroudWin: MainWindow;
+        let nextDisplayWin: MainWindow;
+        let nextPiece: PieceBase;
+
+        if (cur.piece.continue) {
+            nextBackgroudWin = cur.backgroudWin;
+            nextDisplayWin = cur.displayWin;
+            nextPiece = cur.piece;
+        } else {
+            nextDisplayWin = calculateMainWindow(prev.displayWin);
+            if (checkGameOver(nextDisplayWin)) {
+                nextDisplayWin = new MainWindow();
+                nextBackgroudWin = new MainWindow();
+            } else {
+                nextBackgroudWin = cloneMainWindow(nextDisplayWin);
+            }
+
+            debugger;
+
+            nextPiece = GenerateRandomPiece();
+            currentPiece$.next(nextPiece);
+            backgroudWindow$.next(nextBackgroudWin);
+        }
+
+        return {
+            piece: nextPiece,
+            backgroudWin: nextPiece,
+            displayWin: nextDisplayWin
+        }
+    })
+    .map((i: { piece: PieceBase, backgroudWin: MainWindow, displayWin: MainWindow }) => i.displayWin);
 
 
 
@@ -82,11 +124,21 @@ const displayWindow$ = movingPiece$.combineLatest(backgroudWindow$)
 //     console.log('');
 // });
 
-backgroudWindow$.subscribe(i => {
-    console.log('===========================================')
+displayWindow$.subscribe(i => {
+    let c = document.getElementById("myCanvas") as HTMLCanvasElement;
+    let cxt = c.getContext("2d");
+    cxt.clearRect(0, 0, 300, 550);
     for (let y = 4; y < MainWindow.size.height - 1; y++) {
-        let s = i.currentGrid[y].slice(1, MainWindow.size.width - 1).join(' ');
-        console.log(`line ${y}: ${s}`);
+        for (let x = 1; x < MainWindow.size.width - 1; x++) {
+            if (i.currentGrid[y][x] == 1) {
+                let pX = (x - 1) * 25;
+                let py = (y - 4) * 25;
+                cxt.strokeRect(pX, py, 25, 25);
+            }
+        }
     }
 })
+
+currentPiece$.next(GenerateRandomPiece());
+backgroudWindow$.next(new MainWindow());
 

@@ -48,9 +48,15 @@ function Move(dir: 'down' | 'left' | 'right') {
             default: break;
         }
         if (checkMoveValid(cloned, win))
-            return closed;
-        else
-            return clonePiece(piece);
+            return cloned;
+        else {
+            if (dir == 'down') {
+                cloned.continue = false;
+                return cloned;
+            } else {
+                return clonePiece(piece);
+            }
+        }
     }
 }
 
