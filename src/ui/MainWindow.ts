@@ -5,9 +5,16 @@ export class MainWindow {
     public currentGrid: number[][];
 
     public static size = {
-        width: 14,
-        height: 27
+        width: 16,
+        height: 28
     };
+
+    public static availZone = {
+        minX: 2,
+        maxX: 13,
+        minY: 4,
+        maxY: 25
+    }
 
     public static getInitialPosition() {
         return new Coordinate(6, 3);
@@ -27,7 +34,7 @@ function getInitialGrid() {
     for (let y = 0; y < MainWindow.size.height; y++) {
         let row = [];
         for (let x = 0; x < MainWindow.size.width; x++) {
-            if (x == 0 || x == MainWindow.size.width - 1 || y == MainWindow.size.height - 1)
+            if (x < MainWindow.availZone.minX || x > MainWindow.availZone.maxX || y > MainWindow.availZone.maxY)
                 row.push(1);
             else
                 row.push(0);
@@ -53,19 +60,21 @@ export function InsertPieceToWin(piece: PieceBase, mainWin: MainWindow) {
     return clonedWin;
 }
 
-export function calculateMainWindow(mainWin: MainWindow) {
+export function removeFullLine(mainWin: MainWindow) {
     let grid: number[][] = getInitialGrid();
 
-    for (let y = MainWindow.size.height - 2; y >= 0; y--) {
+    let line = MainWindow.availZone.maxY;
+    for (let y = MainWindow.availZone.maxY; y >= MainWindow.availZone.minY; y--) {
         let row = [];
         let fullFlag = true;
         for (let x = 0; x < MainWindow.size.width; x++) {
-            row[x] = mainWin.currentGrid[y][x];
-            if (row[x] == 0)
+            if (mainWin.currentGrid[y][x] == 0) {
                 fullFlag = false;
+                break;
+            }
         }
         if (!fullFlag)
-            grid[y] = row;
+            grid[line--] = mainWin.currentGrid[y];
     }
     return new MainWindow(grid);
 }
@@ -73,7 +82,7 @@ export function calculateMainWindow(mainWin: MainWindow) {
 export function checkGameOver(mainWin: MainWindow) {
     debugger;
     let failed = false;
-    for (let x = 1; x < MainWindow.size.width - 1; x++){
+    for (let x = MainWindow.availZone.minX; x <= MainWindow.availZone.maxX; x++) {
         if (mainWin.currentGrid[3][x] == 1) {
             failed = true;
             break;

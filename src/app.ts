@@ -1,9 +1,9 @@
 import "babel-polyfill";
 import * as Rx from 'rxjs';
-import { GenerateRandomPiece, Move } from './piece/PieceActions';
+import { GenerateRandomPiece, Move, Rotate } from './piece/PieceActions';
 import { Action } from './common/ConstValue';
 import { PieceBase } from './piece/Pieces';
-import { MainWindow, InsertPieceToWin, calculateMainWindow, checkGameOver, cloneMainWindow } from './ui/MainWindow';
+import { MainWindow, InsertPieceToWin, removeFullLine, checkGameOver, cloneMainWindow } from './ui/MainWindow';
 import { Keyboard } from './common/Keyboard';
 
 const rootTick$ = Rx.Observable
@@ -28,55 +28,47 @@ const userAction$ = Rx.Observable.fromEvent(document, 'keydown')
             default: break;
         }
         return action;
-    })
-    .startWith(Action.Rotate);
+    });
 
-const movingPiece$ = Rx.Observable.combineLatest(tick$, userAction$)
-    .withLatestFrom(backgroudWindow$, currentPiece$, (i, j, k) => {
+const tickAction$ = tick$
+    .mapTo(Action.Down);
+
+const command$ = Rx.Observable.merge(userAction$, tickAction$);
+
+const displayWindow$ = command$
+    .withLatestFrom(currentPiece$, backgroudWindow$, (i, j, k) => {
         return {
-            piece: k,
-            backgroudWin: j,
-            tick: i[0],
-            action: i[1]
+            action: i,
+            piece: j,
+            backgroudWin: k
         }
     })
-    .scan((prev, cur) => {
-        let newPiece: PieceBase;
-        if (prev.tick !== cur.tick) {
-            if (prev.piece.continue)
-                newPiece = Move('down')(prev.piece, cur.backgroudWin);
-            else
-                newPiece = Move('down')(cur.piece, cur.backgroudWin);
-        }
-        else {
-            switch (cur.action) {
-                case Action.Down: newPiece = Move('down')(prev.piece, cur.backgroudWin); break;
-                case Action.Left: newPiece = Move('left')(prev.piece, cur.backgroudWin); break;
-                case Action.Right: newPiece = Move('right')(prev.piece, cur.backgroudWin); break;
-                case Action.Rotate: break;
-            }
-        }
-        return {
-            piece: newPiece,
-            tick: cur.tick,
-            action: cur.action,
-            backgroudWin: cur.backgroudWin
-        };
-    })
-    .map(i => i.piece);
-
-
-const displayWindow$ = movingPiece$.withLatestFrom(backgroudWindow$)
     .map(i => {
-        let piece = i[0];
-        let backgroudWin = i[1];
+        let nextPiece: PieceBase;
+
+        switch (i.action) {
+            case Action.Down: nextPiece = Move('down')(i.piece, i.backgroudWin); break;
+            case Action.Left: nextPiece = Move('left')(i.piece, i.backgroudWin); break;
+            case Action.Right: nextPiece = Move('right')(i.piece, i.backgroudWin); break;
+            case Action.Rotate: nextPiece = Rotate(i.piece, i.backgroudWin); break;
+            default: break;
+        }
+
+        currentPiece$.next(nextPiece);
+
+        return {
+            piece: nextPiece,
+            backgroudWin: i.backgroudWin
+        }
+    })
+    .map(i => {
         let displayWin: MainWindow = null;
-        if (piece.continue) {
-            displayWin = InsertPieceToWin(piece, backgroudWin);
+        if (i.piece.continue) {
+            displayWin = InsertPieceToWin(i.piece, i.backgroudWin);
         }
         return {
-            piece: piece,
-            backgroudWin: backgroudWin,
+            piece: i.piece,
+            backgroudWin: i.backgroudWin,
             displayWin: displayWin
         }
     })
@@ -90,15 +82,14 @@ const displayWindow$ = movingPiece$.withLatestFrom(backgroudWindow$)
             nextDisplayWin = cur.displayWin;
             nextPiece = cur.piece;
         } else {
-            nextDisplayWin = calculateMainWindow(prev.displayWin);
+            nextDisplayWin = removeFullLine(prev.displayWin);
             if (checkGameOver(nextDisplayWin)) {
                 nextDisplayWin = new MainWindow();
                 nextBackgroudWin = new MainWindow();
+                console.log('Game Over');
             } else {
                 nextBackgroudWin = cloneMainWindow(nextDisplayWin);
             }
-
-            debugger;
 
             nextPiece = GenerateRandomPiece();
             currentPiece$.next(nextPiece);
@@ -107,33 +98,24 @@ const displayWindow$ = movingPiece$.withLatestFrom(backgroudWindow$)
 
         return {
             piece: nextPiece,
-            backgroudWin: nextPiece,
+            backgroudWin: nextBackgroudWin,
             displayWin: nextDisplayWin
         }
     })
     .map((i: { piece: PieceBase, backgroudWin: MainWindow, displayWin: MainWindow }) => i.displayWin);
 
-
-
-// movingPiece$.subscribe((i) => {
-//     for (let y = 0; y < i.currentShape.length; y++) {
-//         let s = i.currentShape[y].join(' ');
-//         console.log(s);
-//     }
-//     console.log(`当前位置(x:${i.position.x},y:${i.position.y})`);
-//     console.log('');
-// });
-
 displayWindow$.subscribe(i => {
     let c = document.getElementById("myCanvas") as HTMLCanvasElement;
-    let cxt = c.getContext("2d");
-    cxt.clearRect(0, 0, 300, 550);
-    for (let y = 4; y < MainWindow.size.height - 1; y++) {
-        for (let x = 1; x < MainWindow.size.width - 1; x++) {
+    let ctx = c.getContext("2d");
+    ctx.clearRect(0, 0, 300, 550);
+    for (let y = MainWindow.availZone.minY; y <= MainWindow.availZone.maxY; y++) {
+        for (let x = MainWindow.availZone.minX; x <= MainWindow.availZone.maxX; x++) {
             if (i.currentGrid[y][x] == 1) {
-                let pX = (x - 1) * 25;
+                let pX = (x - 2) * 25;
                 let py = (y - 4) * 25;
-                cxt.strokeRect(pX, py, 25, 25);
+                ctx.strokeRect(pX, py, 25, 25);
+                ctx.fillStyle = "#4fbb54";
+                ctx.fillRect(pX, py, 25, 25);
             }
         }
     }

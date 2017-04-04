@@ -1,5 +1,5 @@
 import { GenerateRandomPiece } from './actions/GenerateRandomPiece';
-import { Move } from './actions/Move';
+import { Move, Rotate } from './actions/actions';
 
 
-export { GenerateRandomPiece, Move };
+export { GenerateRandomPiece, Move, Rotate };
