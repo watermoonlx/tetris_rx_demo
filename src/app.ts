@@ -5,14 +5,17 @@ import { Action } from './common/ConstValue';
 import { PieceBase } from './piece/Pieces';
 import { MainWindow, InsertPieceToWin, removeFullLine, checkGameOver, cloneMainWindow } from './ui/MainWindow';
 import { Keyboard } from './common/Keyboard';
+import { GameStatus } from './common/GameStatus';
 
 const rootTick$ = Rx.Observable
     .interval(100)
     .share();
 
-const tick$ = rootTick$
-    .throttleTime(1000);
+const gameStatus$ = new Rx.Subject<GameStatus>();
 
+const tick$ = rootTick$.throttleTime(1000);
+
+const nextPiecePreview$ = new Rx.Subject<PieceBase>();
 const currentPiece$ = new Rx.Subject<PieceBase>();
 const backgroudWindow$ = new Rx.Subject<MainWindow>();
 
@@ -33,7 +36,14 @@ const userAction$ = Rx.Observable.fromEvent(document, 'keydown')
 const tickAction$ = tick$
     .mapTo(Action.Down);
 
-const command$ = Rx.Observable.merge(userAction$, tickAction$);
+const command$ = gameStatus$.switchMap(i => {
+    switch (i) {
+        case GameStatus.normal: return Rx.Observable.merge(userAction$, tickAction$);;
+        case GameStatus.over:
+        case GameStatus.pause: return Rx.Observable.never()
+    }
+});
+
 
 const displayWindow$ = command$
     .withLatestFrom(currentPiece$, backgroudWindow$, (i, j, k) => {
@@ -84,15 +94,16 @@ const displayWindow$ = command$
         } else {
             nextDisplayWin = removeFullLine(prev.displayWin);
             if (checkGameOver(nextDisplayWin)) {
-                nextDisplayWin = new MainWindow();
-                nextBackgroudWin = new MainWindow();
+                gameStatus$.next(GameStatus.over);
+                paintWinTask.unsubscribe();
+                paintNextPieceView.unsubscribe();
                 console.log('Game Over');
             } else {
                 nextBackgroudWin = cloneMainWindow(nextDisplayWin);
             }
 
             nextPiece = GenerateRandomPiece();
-            currentPiece$.next(nextPiece);
+            nextPiecePreview$.next(nextPiece);
             backgroudWindow$.next(nextBackgroudWin);
         }
 
@@ -104,23 +115,65 @@ const displayWindow$ = command$
     })
     .map((i: { piece: PieceBase, backgroudWin: MainWindow, displayWin: MainWindow }) => i.displayWin);
 
-displayWindow$.subscribe(i => {
+let paintWinTask = displayWindow$.subscribe(i => {
     let c = document.getElementById("myCanvas") as HTMLCanvasElement;
     let ctx = c.getContext("2d");
     ctx.clearRect(0, 0, 300, 550);
+    ctx.moveTo(300, 0);
+    ctx.lineTo(300, 550);
+    ctx.stroke();
     for (let y = MainWindow.availZone.minY; y <= MainWindow.availZone.maxY; y++) {
         for (let x = MainWindow.availZone.minX; x <= MainWindow.availZone.maxX; x++) {
             if (i.currentGrid[y][x] == 1) {
                 let pX = (x - 2) * 25;
-                let py = (y - 4) * 25;
-                ctx.strokeRect(pX, py, 25, 25);
+                let pY = (y - 4) * 25;
+                ctx.strokeRect(pX, pY, 25, 25);
                 ctx.fillStyle = "#4fbb54";
-                ctx.fillRect(pX, py, 25, 25);
+                ctx.fillRect(pX, pY, 25, 25);
             }
         }
     }
-})
+});
 
-currentPiece$.next(GenerateRandomPiece());
-backgroudWindow$.next(new MainWindow());
+let paintNextPieceView = nextPiecePreview$
+    .pairwise()
+    .subscribe(i => {
+        let [prevPiece, curPiece] = i;
+
+        let c = document.getElementById("myCanvas") as HTMLCanvasElement;
+        let ctx = c.getContext("2d");
+        ctx.clearRect(300, 0, 450, 300);
+        let maxY = curPiece.currentShape.length;
+        let maxX = curPiece.currentShape[0].length;
+        for (let y = 0; y < maxY; y++) {
+            for (let x = 0; x < maxX; x++) {
+                if (curPiece.currentShape[y][x] == 1) {
+                    let pX = x * 25 + 325;
+                    let pY = y * 25 + 100;
+                    ctx.strokeRect(pX, pY, 25, 25);
+                    ctx.fillStyle = "#4fbb54";
+                    ctx.fillRect(pX, pY, 25, 25);
+                }
+            }
+        }
+
+        currentPiece$.next(prevPiece);
+    });
+
+gameStatus$
+    .filter(i => i == GameStatus.over)
+    .subscribe(i => {
+        let c = document.getElementById("myCanvas") as HTMLCanvasElement;
+        let ctx = c.getContext("2d");
+        ctx.fillStyle = "#d04437";
+        ctx.font = "30px Arial";
+        ctx.fillText("Game Over", 100, 200);
+    });
+
+(function initialize() {
+    nextPiecePreview$.next(GenerateRandomPiece());
+    nextPiecePreview$.next(GenerateRandomPiece());
+    gameStatus$.next(GameStatus.normal);
+    backgroudWindow$.next(new MainWindow());
+} ());
 

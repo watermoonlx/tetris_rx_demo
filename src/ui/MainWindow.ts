@@ -64,7 +64,7 @@ export function removeFullLine(mainWin: MainWindow) {
     let grid: number[][] = getInitialGrid();
 
     let line = MainWindow.availZone.maxY;
-    for (let y = MainWindow.availZone.maxY; y >= MainWindow.availZone.minY; y--) {
+    for (let y = MainWindow.availZone.maxY; y >= MainWindow.availZone.minY ; y--) {
         let row = [];
         let fullFlag = true;
         for (let x = 0; x < MainWindow.size.width; x++) {
@@ -82,7 +82,7 @@ export function removeFullLine(mainWin: MainWindow) {
 export function checkGameOver(mainWin: MainWindow) {
     let failed = false;
     for (let x = MainWindow.availZone.minX; x <= MainWindow.availZone.maxX; x++) {
-        if (mainWin.currentGrid[3][x] == 1) {
+        if (mainWin.currentGrid[4][x] == 1) {
             failed = true;
             break;
         }
