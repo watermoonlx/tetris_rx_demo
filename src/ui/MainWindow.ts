@@ -80,7 +80,6 @@ export function removeFullLine(mainWin: MainWindow) {
 }
 
 export function checkGameOver(mainWin: MainWindow) {
-    debugger;
     let failed = false;
     for (let x = MainWindow.availZone.minX; x <= MainWindow.availZone.maxX; x++) {
         if (mainWin.currentGrid[3][x] == 1) {

@@ -3,10 +3,8 @@
         "noImplicitAny": true,
         "target": "es6",
         "module": "commonjs",
-        "noEmitOnError": true,
         "watch": true,
-        "outDir":"./dist/",
-        "removeComments": true,
+        "removeComments": false,
         "experimentalDecorators":true,
         "emitDecoratorMetadata":true,
         "sourceMap": true

@@ -102,7 +102,7 @@ function checkRotateValid(piece: PieceBase, backgroudWin: MainWindow) {
     if (needMoveX == 0 && needMoveY == 0) {
         return true;
     } else {
-        if (piece.currentShapeIndex == 0 || piece.currentShapeIndex == 1) {
+        if (piece.currentShapeIndex == 0 || piece.currentShapeIndex == 2) {
             if (moveToRight)
                 piece.position.x += needMoveX;
             else

@@ -1,6 +1,7 @@
 'use strict'
 let htmlWebpackPlugin = require('html-webpack-plugin');
 let path = require('path');
+let webpack = require('webpack');
 
 module.exports = {
     entry: [
@@ -8,7 +9,8 @@ module.exports = {
     ],
     output: {
         filename: 'bundle.js',
-        path: __dirname + '/dist'
+        path: __dirname + '/dist',
+        publicPath: 'http://localhost:8080/'
     },
     resolve: {
         extensions: ['.ts', '.js']
@@ -27,7 +29,10 @@ module.exports = {
         compress: true,
         inline: true
     },
-    plugins: [new htmlWebpackPlugin({
-        template: __dirname + '/index.html'
-    })]
+    plugins: [
+        new webpack.SourceMapDevToolPlugin(),
+        new htmlWebpackPlugin({
+            template: __dirname + '/index.html'
+        })
+    ]
 }
